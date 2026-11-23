@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Validasi Sertifikat — LKP HRedu Global Mandiri</title>
+<meta name="description" content="Cek keaslian sertifikat pelatihan Lembaga Kursus & Pelatihan HReDU Global Mandiri.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/logo_hredu.png">
+<link rel="stylesheet" href="assets/style.css">
+<script src="config.js"></script>
+</head>
+<body>
+<img class="deco-tr" src="assets/corner_tr.png" alt="">
+<img class="deco-bl" src="assets/corner_bl.png" alt="">
+<main class="wrap">
+  <div class="logos">
+    <img class="tut" src="assets/tutwuri.png" alt="Tut Wuri Handayani">
+    <img class="hr" src="assets/logo_hredu.png" alt="HReDu Global Mandiri">
+  </div>
+  <h1>VALIDASI SERTIFIKAT</h1>
+  <p class="sub">LKP HREDU GLOBAL MANDIRI</p>
+
+  <div id="demoNote" class="demo" hidden>Mode demo: data contoh, tidak tersambung ke Google Sheet. Coba <b>049/LKP/TKJ/IX/2026</b> (valid) atau <b>050/LKP/TKJ/IX/2026</b> (dicabut).</div>
+
+  <form id="f" class="card" autocomplete="off">
+    <label for="no">Nomor Sertifikat</label>
+    <div class="row">
+      <input id="no" name="no" placeholder="Contoh: 049/LKP/TKJ/IX/2026" maxlength="60" required>
+      <button type="submit">Cek Sertifikat</button>
+    </div>
+    <p class="hint">Scan QR "Verifikasi" di sertifikat, atau ketik nomor yang tertera di bagian atas sertifikat.</p>
+  </form>
+
+  <section id="result" aria-live="polite"></section>
+
+  <footer>
+    Lembaga Kursus &amp; Pelatihan HReDU Global Mandiri<br>
+    <a id="waLink" href="#" target="_blank" rel="noopener">Hubungi kami via WhatsApp</a>
+  </footer>
+</main>
+<script>
+(function () {
+  var C = window.SERT_CONFIG || {};
+  var qs = new URLSearchParams(location.search);
+  var DEMO = qs.get('demo') === '1' || !C.APPS_SCRIPT_URL;
+  var $ = function (id) { return document.getElementById(id); };
+
+  var DEMO_DATA = {
+    '049/LKP/TKJ/IX/2026': { nomor: '049/LKP/TKJ/IX/2026', nama: 'Contoh Peserta', program: 'Teknisi Komputer',
+      mulai: '25 Juli 2026', selesai: '31 Agustus 2026', terbit: '01 September 2026', durasiJP: 16,
+      status: 'LULUS', downloadUrl: 'demo/049-LKP-TKJ-IX-2026.pdf' },
+    '050/LKP/TKJ/IX/2026': { nomor: '050/LKP/TKJ/IX/2026', nama: 'Contoh Peserta', program: 'Teknisi Komputer',
+      mulai: '25 Juli 2026', selesai: '31 Agustus 2026', terbit: '01 September 2026', durasiJP: 16,
+      status: 'DICABUT', downloadUrl: '' }
+  };
+
+  if (DEMO) $('demoNote').hidden = false;
+  if (C.WA_NUMBER) $('waLink').href = 'https://wa.me/' + C.WA_NUMBER + '?text=' +
+    encodeURIComponent('Halo, saya ingin menanyakan verifikasi sertifikat LKP HRedu Global Mandiri.');
+
+  function norm(s) { return String(s || '').toUpperCase().replace(/\s+/g, '').replace(/\\/g, '/').slice(0, 60); }
+
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+  function render(no, r) {
+    var box = $('result'); box.innerHTML = '';
+    var d;
+    if (!r || !r.found) {
+      d = el('div', 'res notfound');
+      d.appendChild(el('span', 'badge', 'TIDAK DITEMUKAN'));
+      d.appendChild(el('h2', null, 'Sertifikat tidak terdaftar'));
+      d.appendChild(el('p', null, 'Nomor "' + no + '" tidak ada di data resmi LKP HRedu Global Mandiri. Periksa kembali penulisan nomor (termasuk tanda "/"), atau hubungi kami.'));
+      box.appendChild(d); return;
+    }
+    var revoked = String(r.status).toUpperCase() === 'DICABUT';
+    d = el('div', 'res ' + (revoked ? 'revoked' : 'valid'));
+    d.appendChild(el('span', 'badge', revoked ? 'DICABUT' : '✓ ' + (r.status || 'LULUS')));
+    d.appendChild(el('h2', null, revoked ? 'Sertifikat sudah dicabut' : 'Sertifikat asli dan terdaftar'));
+    d.appendChild(el('p', null, revoked ? 'Sertifikat ini pernah diterbitkan, tetapi sudah tidak berlaku.' : 'Sertifikat ini resmi diterbitkan oleh LKP HRedu Global Mandiri.'));
+    var dl = el('dl');
+    [['Nomor', r.nomor], ['Nama', r.nama], ['Program', r.program],
+     ['Periode', (r.mulai || '-') + ' s.d ' + (r.selesai || '-')],
+     ['Tanggal terbit', r.terbit], ['Durasi', r.durasiJP ? r.durasiJP + ' jp' : ''],
+     ['Status', r.status || 'LULUS']].forEach(function (kv) {
+      if (!kv[1]) return; dl.appendChild(el('dt', null, kv[0])); dl.appendChild(el('dd', null, kv[1]));
+    });
+    d.appendChild(dl);
+    if (!revoked && r.downloadUrl && /^(https:\/\/(drive|docs)\.google\.com\/|demo\/)/.test(r.downloadUrl)) {
+      var a = el('a', 'btn btn-dl', '⬇ Unduh Sertifikat (PDF)');
+      a.href = r.downloadUrl; a.rel = 'noopener';
+      if (DEMO) a.setAttribute('download', r.nomor.replace(/\//g, '-') + '.pdf'); else a.target = '_blank';
+      d.appendChild(a);
+    } else if (!revoked) {
+      d.appendChild(el('p', 'hint', 'File PDF sertifikat belum tersedia untuk diunduh.'));
+    }
+    box.appendChild(d);
+  }
+
+  function jsonp(url) {
+    return new Promise(function (res, rej) {
+      var cb = '__sert' + Date.now(), s = document.createElement('script'), t = setTimeout(function () { clean(); rej(new Error('timeout')); }, 15000);
+      function clean() { clearTimeout(t); delete window[cb]; s.remove(); }
+      window[cb] = function (d) { clean(); res(d); };
+      s.onerror = function () { clean(); rej(new Error('jsonp')); };
+      s.src = url + '&callback=' + cb; document.head.appendChild(s);
+    });
+  }
+
+  function lookup(no) {
+    if (DEMO) return new Promise(function (r) { setTimeout(function () { var x = DEMO_DATA[no]; r(x ? Object.assign({ ok: true, found: true }, x) : { ok: true, found: false }); }, 300); });
+    var url = C.APPS_SCRIPT_URL + '?action=verify&no=' + encodeURIComponent(no);
+    return fetch(url).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .catch(function () { return jsonp(url); });
+  }
+
+  function check(raw) {
+    var no = norm(raw);
+    if (!no) return;
+    $('no').value = no;
+    var p = new URLSearchParams(location.search); p.set('no', no);
+    history.replaceState(null, '', location.pathname + '?' + p.toString());
+    $('result').innerHTML = '<p class="loading">Memeriksa data sertifikat…</p>';
+    lookup(no).then(function (r) {
+      if (!r || r.ok === false) throw new Error((r && r.error) || 'error');
+      render(no, r);
+    }).catch(function () {
+      $('result').innerHTML = '';
+      var d = el('div', 'res notfound');
+      d.appendChild(el('span', 'badge', 'GAGAL MEMERIKSA'));
+      d.appendChild(el('p', null, 'Server validasi sedang tidak dapat dihubungi. Silakan coba lagi beberapa saat lagi.'));
+      $('result').appendChild(d);
+    });
+  }
+
+  $('f').addEventListener('submit', function (e) { e.preventDefault(); check($('no').value); });
+  if (qs.get('no')) check(qs.get('no'));
+})();
+</script>
+</body>
+</html>

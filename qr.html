@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pembuat QR Verifikasi — LKP HRedu</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="assets/style.css">
+<script src="config.js"></script>
+<script src="assets/qrcode.min.js"></script>
+<style>#qr{display:flex;justify-content:center;margin:18px 0 8px}#qr img,#qr canvas{border:10px solid #fff;outline:1px solid #e3e7ef}
+.url{font-size:12.5px;word-break:break-all;color:var(--muted);text-align:center}.acts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px}</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="logos"><img class="hr" src="assets/logo_hredu.png" alt="HReDu Global Mandiri"></div>
+  <h1 style="font-size:26px">PEMBUAT QR</h1>
+  <p class="sub">QR "Verifikasi Scan Barcode ini" untuk sertifikat</p>
+  <form id="f" class="card">
+    <label for="no">Nomor Sertifikat</label>
+    <div class="row"><input id="no" value="049/LKP/TKJ/IX/2026" required><button>Buat QR</button></div>
+    <div id="qr"></div>
+    <p class="url" id="url"></p>
+    <div class="acts"><button type="button" id="dl" class="btn-sec">Unduh PNG</button><button type="button" id="cp" class="btn-sec">Salin Link</button></div>
+    <p class="hint">Tempel PNG ini di kiri bawah sertifikat (Canva), menggantikan QR lama. Ukuran cetak minimal ±2,5 cm.</p>
+  </form>
+</main>
+<script>
+(function () {
+  var C = window.SERT_CONFIG, box = document.getElementById('qr'), cur = '';
+  function norm(s) { return String(s || '').toUpperCase().replace(/\s+/g, ''); }
+  function make() {
+    var no = norm(document.getElementById('no').value); if (!no) return;
+    document.getElementById('no').value = no;
+    cur = no; var url = C.SITE_URL + '?no=' + encodeURIComponent(no);
+    box.innerHTML = '';
+    new QRCode(box, { text: url, width: 600, height: 600, correctLevel: QRCode.CorrectLevel.M });
+    var c = box.querySelector('canvas'); if (c) { c.style.width = '220px'; c.style.height = '220px'; }
+    var i = box.querySelector('img'); if (i) { i.style.width = '220px'; }
+    document.getElementById('url').textContent = url;
+  }
+  document.getElementById('f').addEventListener('submit', function (e) { e.preventDefault(); make(); });
+  document.getElementById('dl').onclick = function () {
+    var c = box.querySelector('canvas'); if (!c) return;
+    var o = document.createElement('canvas'), pad = 40; o.width = c.width + pad * 2; o.height = c.height + pad * 2;
+    var x = o.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, o.width, o.height); x.drawImage(c, pad, pad);
+    var a = document.createElement('a'); a.download = 'QR-' + cur.replace(/\//g, '-') + '.png'; a.href = o.toDataURL('image/png'); a.click();
+  };
+  document.getElementById('cp').onclick = function () { navigator.clipboard && navigator.clipboard.writeText(document.getElementById('url').textContent); };
+  var q = new URLSearchParams(location.search).get('no'); if (q) document.getElementById('no').value = q;
+  make();
+})();
+</script>
+</body>
+</html>
